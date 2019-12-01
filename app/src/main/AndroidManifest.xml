@@ -74,11 +74,14 @@
             android:launchMode="singleTop"
             android:screenOrientation="portrait"
             android:theme="@style/Wallet.Splash">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
+
         <activity
             android:name=".advanced.ui.AdvancedMainActivity"
             android:launchMode="singleTop"
@@ -93,7 +96,30 @@
             android:launchMode="singleTop"
             android:screenOrientation="portrait"
             android:theme="@style/Wallet"
-            android:windowSoftInputMode="stateHidden" />
+            android:windowSoftInputMode="stateHidden" >
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="crypttp.com"
+                    android:pathPrefix="/crypttp"
+                    android:scheme="crypttp" />
+
+                <!-- Second one to open from Web -->
+                <data
+                    android:host="crypttp.com"
+                    android:pathPrefix="/crypttp"
+                    android:scheme="http" />
+                <data
+                    android:host="crypttp.com"
+                    android:pathPrefix="/crypttp"
+                    android:scheme="https" />
+            </intent-filter>
+
+        </activity>
         <activity
             android:name=".auth.ui.RegisterActivity"
             android:launchMode="singleTop"

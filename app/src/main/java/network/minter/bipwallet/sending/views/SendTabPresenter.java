@@ -181,6 +181,8 @@ public class SendTabPresenter extends MvpBasePresenter<SendView> {
     private CoinAccount mLastAccount = null;
     private BigDecimal sendFee;
     private byte[] payload;
+    private String onTxSuccessUrl = "";
+    private String onTxErrorUrl = "";
     @Inject GateTransactionRepository gateTxRepo;
 
     private enum SearchByType {
@@ -286,6 +288,11 @@ public class SendTabPresenter extends MvpBasePresenter<SendView> {
         setRecipientAutocomplete();
         getViewState().setSubmitEnabled(false);
         getViewState().setFormValidationListener(valid -> getViewState().setSubmitEnabled(valid && checkZero(mAmount)));
+    }
+
+    public void setDeepLinkTxResultUrls(String onSuccess, String onError) {
+        onTxSuccessUrl = onSuccess;
+        onTxErrorUrl = onError;
     }
 
     private void loadAndSetFee() {
@@ -826,6 +833,13 @@ public class SendTabPresenter extends MvpBasePresenter<SendView> {
 
     private void onFailedExecuteTransaction(final Throwable throwable) {
         Timber.w(throwable, "Uncaught tx error");
+        if (!onTxErrorUrl.isEmpty()) {
+            //start web
+            onTxErrorUrl = "";
+            getViewState().hideCurrentDialog();
+            getViewState().openBrowserUrl(onTxErrorUrl);
+            return;
+        }
         getViewState().startDialog(ctx -> new WalletConfirmDialog.Builder(ctx, "Unable to send transaction")
                 .setText(throwable.getMessage())
                 .setPositiveAction("Close")
@@ -857,6 +871,13 @@ public class SendTabPresenter extends MvpBasePresenter<SendView> {
 
     private void onErrorExecuteTransaction(GateResult<?> errorResult) {
         Timber.e(errorResult.getMessage(), "Unable to send transaction");
+        if (!onTxErrorUrl.isEmpty()) {
+            //start web
+            onTxErrorUrl = "";
+            getViewState().hideCurrentDialog();
+            getViewState().openBrowserUrl(onTxErrorUrl);
+            return;
+        }
         getViewState().startDialog(ctx -> new WalletConfirmDialog.Builder(ctx, "Unable to send transaction")
                 .setText((errorResult.getMessage()))
                 .setPositiveAction("Close")
@@ -866,6 +887,19 @@ public class SendTabPresenter extends MvpBasePresenter<SendView> {
     private void onSuccessExecuteTransaction(final GateResult<TransactionSendResult> result) {
         if (!result.isOk()) {
             onErrorExecuteTransaction(result);
+            return;
+        }
+
+        if (!onTxSuccessUrl.isEmpty()) {
+            getViewState().clearInputs();
+            mToName = null;
+            mToMpAddress = null;
+            mToMxAddress = null;
+            sendFee = null;
+            getViewState().hideCurrentDialog();
+            //start web
+            getViewState().openBrowserUrl(onTxSuccessUrl);
+            onTxSuccessUrl = "";
             return;
         }
 

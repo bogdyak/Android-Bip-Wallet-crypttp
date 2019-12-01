@@ -38,6 +38,7 @@ import androidx.transition.ChangeBounds;
 import androidx.transition.ChangeClipBounds;
 import androidx.transition.Slide;
 import androidx.transition.TransitionSet;
+
 import network.minter.bipwallet.R;
 import network.minter.bipwallet.internal.BaseMvpInjectActivity;
 
@@ -93,5 +94,4 @@ public class AuthActivity extends BaseMvpInjectActivity implements SplashFragmen
                 .add(R.id.container_auth, mSplashFragment)
                 .commit();
     }
-
 }

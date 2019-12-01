@@ -32,9 +32,21 @@ import android.app.Service;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import android.view.ViewGroup;
 
+import androidx.annotation.IdRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentPagerAdapter;
+import androidx.viewpager.widget.ViewPager;
+
 import com.ittianyu.bottomnavigationviewex.BottomNavigationViewEx;
+
+import org.json.JSONArray;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,12 +56,6 @@ import java.util.WeakHashMap;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
-import androidx.annotation.IdRes;
-import androidx.annotation.NonNull;
-import androidx.annotation.VisibleForTesting;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentPagerAdapter;
-import androidx.viewpager.widget.ViewPager;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import moxy.presenter.InjectPresenter;
@@ -65,21 +71,35 @@ import network.minter.bipwallet.internal.system.ActivityBuilder;
 import network.minter.bipwallet.internal.system.BackPressedDelegate;
 import network.minter.bipwallet.internal.system.BackPressedListener;
 import network.minter.bipwallet.internal.system.testing.IdlingManager;
+import network.minter.bipwallet.sending.models.DeepLinkData;
+import network.minter.bipwallet.sending.models.DeeplinkSendData;
+import network.minter.bipwallet.sending.ui.SendTabFragment;
 import timber.log.Timber;
 
 /**
  * minter-android-wallet. 2018
+ *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  */
 public class HomeActivity extends BaseMvpActivity implements HomeView, BackPressedDelegate {
 
-    @Inject Provider<HomePresenter> presenterProvider;
-    @InjectPresenter HomePresenter presenter;
-    @Inject IdlingManager idlingManager;
-    @Inject @HomeTabsClasses List<Class<? extends HomeTabFragment>> tabsClasses;
 
-    @BindView(R.id.navigation_bottom) BottomNavigationViewEx bottomNavigation;
-    @BindView(R.id.home_pager) ViewPager homePager;
+    private final static String DEEPLINK_HOST = "crypttp.com";
+
+    @Inject
+    Provider<HomePresenter> presenterProvider;
+    @InjectPresenter
+    HomePresenter presenter;
+    @Inject
+    IdlingManager idlingManager;
+    @Inject
+    @HomeTabsClasses
+    List<Class<? extends HomeTabFragment>> tabsClasses;
+
+    @BindView(R.id.navigation_bottom)
+    BottomNavigationViewEx bottomNavigation;
+    @BindView(R.id.home_pager)
+    ViewPager homePager;
 
     private Map<Integer, HomeTabFragment> mActiveTabs = new WeakHashMap<>();
     private List<BackPressedListener> mBackPressedListeners = new ArrayList<>(1);
@@ -218,6 +238,13 @@ public class HomeActivity extends BaseMvpActivity implements HomeView, BackPress
 
         setupTabAdapter();
         setupBottomNavigation();
+        checkDeeplink(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        checkDeeplink(intent);
     }
 
     private void setupTabAdapter() {
@@ -303,6 +330,82 @@ public class HomeActivity extends BaseMvpActivity implements HomeView, BackPress
             runOnUiThread(() -> homePager.setCurrentItem(presenter.getBottomPositionById(item.getItemId())));
             return true;
         });
+    }
+
+    private void checkDeeplink(Intent intent) {
+        Log.d("MIINE", "checkDeeplink");
+        Uri data = intent.getData();
+        if (data == null) {
+            return;
+        }
+        String host = data.getHost();
+        if (host == null) {
+            return;
+        }
+        String query = data.getQuery();
+        if (query == null) {
+            return;
+        }
+        if (host.equals(DEEPLINK_HOST)) {
+            try {
+                String[] params = query.split("&");
+                String param = params[0].split("=")[1].replace(" ", "");
+                JSONArray array = new JSONArray(param);
+                List<DeepLinkData> deepLinkParams = new ArrayList<>();
+                for (int i = 0; i < array.length(); i++) {
+                    JSONArray allParams = array.getJSONArray(i);
+                    String coin = allParams.getString(0);
+                    String amount = allParams.getString(1);
+                    String to = allParams.getString(2);
+                    String payload = allParams.isNull(3) ? "" : allParams.getString(3);
+                    String memo = allParams.isNull(4) ? "" : allParams.getString(4);
+                    String onsuccess = allParams.isNull(5) ? "" : "https://" + allParams.getString(5);
+                    String onerror = allParams.isNull(6) ? "" : "https://" + allParams.getString(6);
+                    deepLinkParams.add(
+                            new DeepLinkData(
+                                    coin, amount, to,
+                                    payload, memo,
+                                    onsuccess, onerror
+                            )
+                    );
+                }
+                if (deepLinkParams.isEmpty()) {
+                    return;
+                }
+                DeepLinkData dataToSend = null;
+                for (int i = 0; i < deepLinkParams.size(); i++) {
+                    if (deepLinkParams.get(i).getCoin().toLowerCase().equals("bip")) {
+                        dataToSend = deepLinkParams.get(i);
+                        break;
+                    }
+                }
+                if (dataToSend == null) {
+                    return;
+                }
+                DeepLinkData finalDataToSend = dataToSend;
+                new Handler((Looper.getMainLooper())).postDelayed(
+                        () -> {
+                            homePager.setCurrentItem(1);
+                            Fragment fragment = mActiveTabs.get(1);
+                            if (fragment != null) {
+                                ((SendTabFragment) fragment).onNewDeeplink(
+                                        new DeeplinkSendData(
+                                                finalDataToSend.getTo(),
+                                                finalDataToSend.getAmount(),
+                                                finalDataToSend.getPayload(),
+                                                finalDataToSend.getOnsuccess(),
+                                                finalDataToSend.getOnerror()
+                                        )
+                                );
+                            }
+                        },
+                        250
+                );
+            } catch (Exception ex) {
+                Log.d("MIINE", "error: " + ex.getMessage());
+                ex.printStackTrace();
+            }
+        }
     }
 
     public static final class Builder extends ActivityBuilder {

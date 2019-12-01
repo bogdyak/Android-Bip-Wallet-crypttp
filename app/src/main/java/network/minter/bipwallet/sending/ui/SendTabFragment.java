@@ -78,6 +78,7 @@ import network.minter.bipwallet.sending.account.AccountSelectedAdapter;
 import network.minter.bipwallet.sending.account.WalletAccountSelectorDialog;
 import network.minter.bipwallet.sending.adapters.RecipientListAdapter;
 import network.minter.bipwallet.sending.contract.SendView;
+import network.minter.bipwallet.sending.models.DeeplinkSendData;
 import network.minter.bipwallet.sending.models.RecipientItem;
 import network.minter.bipwallet.sending.views.SendTabPresenter;
 import network.minter.bipwallet.tx.ui.ExternalTransactionActivity;
@@ -143,6 +144,11 @@ public class SendTabFragment extends HomeTabFragment implements SendView {
         WalletDialog.releaseDialog(mCurrentDialog);
         super.onDestroyView();
         mUnbinder.unbind();
+    }
+
+    @Override
+    public void hideCurrentDialog() {
+        WalletDialog.releaseDialog(mCurrentDialog);
     }
 
     @Nullable
@@ -359,6 +365,23 @@ public class SendTabFragment extends HomeTabFragment implements SendView {
                     d.dismiss();
                 }).create()
                 .show();
+    }
+
+    @Override
+    public void openBrowserUrl(String url) {
+        try {
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            startActivity(browserIntent);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public void onNewDeeplink(DeeplinkSendData data) {
+        recipientInput.setText(data.getTo());
+        amountInput.setText(data.getAmount());
+        payloadInput.setText(data.getPayload());
+        presenter.setDeepLinkTxResultUrls(data.getSuccessUrl(), data.getErrorUrl());
     }
 
     @OnPermissionDenied(Manifest.permission.CAMERA)

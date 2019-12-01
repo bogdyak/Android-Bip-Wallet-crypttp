@@ -81,14 +81,14 @@ android {
         }
     }
 
-    signingConfigs {
+/*    signingConfigs {
         config {
             keyAlias localProps['minter_key_alias']
             keyPassword localProps['minter_key_password']
             storeFile file(localProps['minter_key_store_file'])
             storePassword localProps['minter_key_store_password']
         }
-    }
+    }*/
 
     testBuildType 'debugTest'
 
@@ -103,14 +103,14 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.config
+            //signingConfig signingConfigs.config
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro', 'proguard-test-rules.pro', 'proguard-release-rules.pro'
         }
 
         debug {
-            signingConfig signingConfigs.config
+            //signingConfig signingConfigs.config
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro', 'proguard-test-rules.pro', 'proguard-release-rules.pro'
@@ -118,7 +118,7 @@ android {
         }
 
         debugTest {
-            signingConfig signingConfigs.config
+            //signingConfig signingConfigs.config
             minifyEnabled false
             shrinkResources false
             testCoverageEnabled true
@@ -218,7 +218,8 @@ dependencies {
 
     // common
     implementation 'androidx.multidex:multidex:2.0.1'
-    implementation 'com.edwardstock.android:code-scanner:2.2.1'
+    //implementation 'com.edwardstock.android:code-scanner:2.2.1'
+    implementation 'com.budiyev.android:code-scanner:2.1.0'
     implementation 'com.google.zxing:core:3.3.0'
     implementation 'com.google.zxing:android-core:3.3.0'
     implementation 'com.google.zxing:android-integration:3.3.0'

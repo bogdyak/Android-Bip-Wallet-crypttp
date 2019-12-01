@@ -53,4 +53,6 @@ public interface SendView extends MvpView, ErrorViewWithRetry {
     void setActionTitle(int buttonTitle);
     @StateStrategyType(OneExecutionStateStrategy.class)
     void startExternalTransaction(ExternalTransaction tx);
+    void openBrowserUrl(String url);
+    void hideCurrentDialog();
 }
