@@ -34,6 +34,8 @@ import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
 
+import androidx.annotation.DrawableRes;
+
 import com.annimon.stream.Optional;
 import com.annimon.stream.Stream;
 
@@ -47,12 +49,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.inject.Inject;
 
-import androidx.annotation.DrawableRes;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.disposables.Disposables;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.BehaviorSubject;
@@ -77,6 +79,7 @@ import network.minter.bipwallet.internal.helpers.forms.validators.ByteLengthVali
 import network.minter.bipwallet.internal.mvp.MvpBasePresenter;
 import network.minter.bipwallet.internal.system.testing.IdlingManager;
 import network.minter.bipwallet.sending.contract.SendView;
+import network.minter.bipwallet.sending.models.DeepLinkData;
 import network.minter.bipwallet.sending.models.RecipientItem;
 import network.minter.bipwallet.sending.repo.RecipientAutocompleteStorage;
 import network.minter.bipwallet.sending.ui.QRCodeScannerActivity;
@@ -123,6 +126,7 @@ import static network.minter.bipwallet.internal.helpers.MathHelper.bigDecimalFro
 
 /**
  * minter-android-wallet. 2018
+ *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  */
 @InjectViewState
@@ -152,19 +156,30 @@ public class SendTabPresenter extends MvpBasePresenter<SendView> {
             setupFee();
         }
     };
-    @Inject SecretStorage secretStorage;
+    @Inject
+    SecretStorage secretStorage;
     @Inject
     CachedRepository<List<HistoryTransaction>, CachedExplorerTransactionRepository> cachedTxRepo;
-    @Inject CachedRepository<UserAccount, AccountStorage> accountStorage;
-    @Inject ExplorerCoinsRepository coinRepo;
-    @Inject BlockChainTransactionRepository bcTxRepo;
-    @Inject BlockChainStatusRepository bcStatusRepo;
-    @Inject ProfileInfoRepository infoRepo;
-    @Inject GateGasRepository gasRepo;
-    @Inject CacheManager cache;
-    @Inject RecipientAutocompleteStorage recipientStorage;
-    @Inject IdlingManager idlingManager;
-    @Inject GateEstimateRepository estimateRepo;
+    @Inject
+    CachedRepository<UserAccount, AccountStorage> accountStorage;
+    @Inject
+    ExplorerCoinsRepository coinRepo;
+    @Inject
+    BlockChainTransactionRepository bcTxRepo;
+    @Inject
+    BlockChainStatusRepository bcStatusRepo;
+    @Inject
+    ProfileInfoRepository infoRepo;
+    @Inject
+    GateGasRepository gasRepo;
+    @Inject
+    CacheManager cache;
+    @Inject
+    RecipientAutocompleteStorage recipientStorage;
+    @Inject
+    IdlingManager idlingManager;
+    @Inject
+    GateEstimateRepository estimateRepo;
     private CoinAccount mFromAccount = null;
     private BigDecimal mAmount = null;
     private CharSequence mToMxAddress = null;
@@ -183,7 +198,8 @@ public class SendTabPresenter extends MvpBasePresenter<SendView> {
     private byte[] payload;
     private String onTxSuccessUrl = "";
     private String onTxErrorUrl = "";
-    @Inject GateTransactionRepository gateTxRepo;
+    @Inject
+    GateTransactionRepository gateTxRepo;
 
     private enum SearchByType {
         Address, Username, Email
@@ -290,7 +306,44 @@ public class SendTabPresenter extends MvpBasePresenter<SendView> {
         getViewState().setFormValidationListener(valid -> getViewState().setSubmitEnabled(valid && checkZero(mAmount)));
     }
 
-    public void setDeepLinkTxResultUrls(String onSuccess, String onError) {
+    private Disposable deeplinkDataDisposable = Disposables.disposed();
+    public void onNewDeeplinkParams(List<DeepLinkData> data) {
+        deeplinkDataDisposable = accountStorage
+                .observe()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(res -> {
+                            if (!res.isEmpty()) {
+                                deeplinkDataDisposable.dispose();
+                                DeepLinkData deepLinkData = null;
+                                CoinAccount coinAccount = null;
+                                for (int i = 0; i < data.size(); i++) {
+                                    if (deepLinkData != null &&
+                                            coinAccount != null) {
+                                        break;
+                                    }
+                                    for (int j = 0; j < res.getCoinAccounts().size(); j++) {
+                                        if (data.get(i).getCoin().toLowerCase().equals(res.getCoinAccounts().get(j).coin.toLowerCase())) {
+                                            deepLinkData = data.get(i);
+                                            coinAccount = res.getCoinAccounts().get(j);
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (deepLinkData == null || coinAccount == null) {
+                                    return;
+                                }
+                                onAccountSelected(coinAccount);
+                                setDeepLinkTxResultUrls(deepLinkData.getOnsuccess(), deepLinkData.getOnerror());
+                                getViewState().showDeeplinkParams(deepLinkData.getTo(), deepLinkData.getAmount(), deepLinkData.getPayload());
+                            }
+                        },
+                        t -> getViewState().onError(t)
+                );
+        unsubscribeOnDestroy(deeplinkDataDisposable);
+    }
+
+    private void setDeepLinkTxResultUrls(String onSuccess, String onError) {
         onTxSuccessUrl = onSuccess;
         onTxErrorUrl = onError;
     }
@@ -574,6 +627,7 @@ public class SendTabPresenter extends MvpBasePresenter<SendView> {
 
     /**
      * Unused now, soon
+     *
      * @param dialogInterface
      * @param which
      */

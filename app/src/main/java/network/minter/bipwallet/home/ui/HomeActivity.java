@@ -72,7 +72,6 @@ import network.minter.bipwallet.internal.system.BackPressedDelegate;
 import network.minter.bipwallet.internal.system.BackPressedListener;
 import network.minter.bipwallet.internal.system.testing.IdlingManager;
 import network.minter.bipwallet.sending.models.DeepLinkData;
-import network.minter.bipwallet.sending.models.DeeplinkSendData;
 import network.minter.bipwallet.sending.ui.SendTabFragment;
 import timber.log.Timber;
 
@@ -372,7 +371,7 @@ public class HomeActivity extends BaseMvpActivity implements HomeView, BackPress
                 if (deepLinkParams.isEmpty()) {
                     return;
                 }
-                DeepLinkData dataToSend = null;
+                /*DeepLinkData dataToSend = null;
                 for (int i = 0; i < deepLinkParams.size(); i++) {
                     if (deepLinkParams.get(i).getCoin().toLowerCase().equals("bip")) {
                         dataToSend = deepLinkParams.get(i);
@@ -383,20 +382,13 @@ public class HomeActivity extends BaseMvpActivity implements HomeView, BackPress
                     return;
                 }
                 DeepLinkData finalDataToSend = dataToSend;
+                */
                 new Handler((Looper.getMainLooper())).postDelayed(
                         () -> {
                             homePager.setCurrentItem(1);
                             Fragment fragment = mActiveTabs.get(1);
                             if (fragment != null) {
-                                ((SendTabFragment) fragment).onNewDeeplink(
-                                        new DeeplinkSendData(
-                                                finalDataToSend.getTo(),
-                                                finalDataToSend.getAmount(),
-                                                finalDataToSend.getPayload(),
-                                                finalDataToSend.getOnsuccess(),
-                                                finalDataToSend.getOnerror()
-                                        )
-                                );
+                                ((SendTabFragment) fragment).onNewDeeplink(deepLinkParams);
                             }
                         },
                         250

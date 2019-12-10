@@ -55,4 +55,5 @@ public interface SendView extends MvpView, ErrorViewWithRetry {
     void startExternalTransaction(ExternalTransaction tx);
     void openBrowserUrl(String url);
     void hideCurrentDialog();
+    void showDeeplinkParams(String to, String amount, String payload);
 }

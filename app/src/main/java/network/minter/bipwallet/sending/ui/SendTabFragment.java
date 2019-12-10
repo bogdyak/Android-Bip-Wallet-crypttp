@@ -78,6 +78,7 @@ import network.minter.bipwallet.sending.account.AccountSelectedAdapter;
 import network.minter.bipwallet.sending.account.WalletAccountSelectorDialog;
 import network.minter.bipwallet.sending.adapters.RecipientListAdapter;
 import network.minter.bipwallet.sending.contract.SendView;
+import network.minter.bipwallet.sending.models.DeepLinkData;
 import network.minter.bipwallet.sending.models.DeeplinkSendData;
 import network.minter.bipwallet.sending.models.RecipientItem;
 import network.minter.bipwallet.sending.views.SendTabPresenter;
@@ -377,11 +378,15 @@ public class SendTabFragment extends HomeTabFragment implements SendView {
         }
     }
 
-    public void onNewDeeplink(DeeplinkSendData data) {
-        recipientInput.setText(data.getTo());
-        amountInput.setText(data.getAmount());
-        payloadInput.setText(data.getPayload());
-        presenter.setDeepLinkTxResultUrls(data.getSuccessUrl(), data.getErrorUrl());
+    @Override
+    public void showDeeplinkParams(String to, String amount, String payload) {
+        recipientInput.setText(to);
+        amountInput.setText(amount);
+        payloadInput.setText(payload);
+    }
+
+    public void onNewDeeplink(List<DeepLinkData> data) {
+        presenter.onNewDeeplinkParams(data);
     }
 
     @OnPermissionDenied(Manifest.permission.CAMERA)
